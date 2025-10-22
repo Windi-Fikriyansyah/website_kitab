@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Http;
 class HomeController extends Controller
 {
     // Base URL for external images
-    protected $externalBaseUrl = 'http://127.0.0.1:8001/storage/products/';
-    protected $externalBase = 'http://127.0.0.1:8001/storage/testimoni/';
-    protected $externalBaseHero = 'http://127.0.0.1:8001/storage/';
+    protected $externalBaseUrl = 'https://manajemen.daribnuabbas.com/storage/products/';
+    protected $externalBase = 'https://manajemen.daribnuabbas.com/storage/testimoni/';
+    protected $externalBaseHero = 'https://manajemen.daribnuabbas.com/storage/';
     // Ambil gambar hero dari base URL eksternal
     protected function getExternalHero($imagePath)
     {
