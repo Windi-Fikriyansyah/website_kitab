@@ -292,7 +292,19 @@
                                     <div class="p-3 md:p-4">
                                         <div class="flex items-center justify-between mb-2">
                                             <span class="inline-block text-xs font-semibold text-primary-600">
-                                                {{ $book['kategori'] ?? 'Kitab Islam' }}
+                                                @php
+                                                    $kat = $book['kategori_label'] ?? null;
+                                                    if (is_string($kat) && trim($kat) === '[]') {
+                                                        $kat = null;
+                                                    }
+                                                @endphp
+
+                                                {{ $kat ?: '-' }}
+                                                @if (!empty($book['subkategori_label']) && $book['subkategori_label'] !== '[]')
+                                                    <span class="text-gray-400">•</span> {{ $book['subkategori_label'] }}
+                                                @endif
+
+
                                             </span>
                                         </div>
 
@@ -427,7 +439,7 @@
             </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 @foreach ($topCategories as $cat)
-                    <a href="{{ route('produk.semua', ['categories[]' => $cat->kategori_indo]) }}"
+                    <a href="{{ route('produk.semua', ['categories' => [$cat->kategori_indo]]) }}"
                         class="group relative overflow-hidden rounded-lg h-24 md:h-32">
                         <div
                             class="absolute inset-0 bg-gradient-to-br from-primary-600 to-primary-800 opacity-90 group-hover:opacity-100 transition-opacity">

@@ -144,7 +144,11 @@
                             <div class="p-6">
                                 <span
                                     class="inline-block text-xs font-semibold uppercase tracking-wider border border-gray-300 rounded-full px-3 py-1 mb-2">
-                                    {{ $book['kategori'] ?? 'Kitab Islam' }}
+                                    {{ $book['kategori_label'] ?? 'Kitab Islam' }}
+                                    @if (!empty($book['subkategori_label']))
+                                        <span class="mx-1 text-gray-400">•</span>{{ $book['subkategori_label'] }}
+                                    @endif
+
                                 </span>
                                 <h3 class="text-lg font-semibold text-gray-800 mt-1 mb-1">{{ $book['judul'] }}</h3>
                                 <p class="text-sm text-gray-500 mb-3">

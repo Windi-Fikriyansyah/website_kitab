@@ -50,12 +50,23 @@ class ProductController extends Controller
                 'produk.harga_modal',
                 'produk.created_at',
                 'produk.link_youtube',
+                'produk_indo.kategori_indo',
             ]);
 
         // Apply filters
         if (!empty($selectedCategories)) {
-            $query->whereIn('produk.kategori', $selectedCategories);
+            $query->where(function ($q) use ($selectedCategories) {
+                foreach ($selectedCategories as $cat) {
+                    $json = json_encode($cat, JSON_UNESCAPED_UNICODE);
+
+                    $q->orWhere('produk.kategori', $cat)
+                        ->orWhere('produk_indo.kategori_indo', $cat)
+                        ->orWhereRaw("(JSON_VALID(`produk`.`kategori`) AND JSON_CONTAINS(`produk`.`kategori`, ?))", [$json])
+                        ->orWhereRaw("(JSON_VALID(`produk`.`sub_kategori`) AND JSON_CONTAINS(`produk`.`sub_kategori`, ?))", [$json]);
+                }
+            });
         }
+
 
         if (!empty($selectedAuthors)) {
             $query->whereIn('produk.penulis', $selectedAuthors);
@@ -93,23 +104,48 @@ class ProductController extends Controller
             ->limit($perPage)
             ->get()
             ->map(function ($item) {
-                // Handle images
+                // images
                 $images = [];
                 if (!empty($item->images)) {
                     if ($this->is_json($item->images)) {
-                        $decodedImages = json_decode($item->images, true);
-                        foreach ($decodedImages as $image) {
-                            $images[] = $this->externalBaseUrl1 . $image;
+                        foreach ((array) json_decode($item->images, true) as $image) {
+                            $images[] = $this->externalBaseUrl1 . ltrim($image, '/');
                         }
                     } else {
-                        $images[] = $this->externalBaseUrl1 . $item->images;
+                        $images[] = $this->externalBaseUrl1 . ltrim($item->images, '/');
                     }
                 }
 
+                // ✅ kategori label (support JSON ["Kategori","Subkategori"])
+                $kategoriLabel = $item->kategori_indo ?: ($item->kategori ?: 'Kitab Islam');
+                $subkategoriLabel = null;
+
+                // jika sub_kategori JSON array
+                if (!empty($item->sub_kategori) && $this->is_json($item->sub_kategori)) {
+                    $arr = json_decode($item->sub_kategori, true);
+                    if (is_array($arr)) {
+                        $kategoriLabel = $arr[0] ?? $kategoriLabel;
+                        $subkategoriLabel = $arr[1] ?? null;
+                    }
+                } else {
+                    // kalau sub_kategori string biasa, bisa dipakai sebagai sub label
+                    $subkategoriLabel = $item->sub_kategori ?: null;
+                }
+
+                // kalau kategori ternyata JSON juga
+                if (!empty($item->kategori) && $this->is_json($item->kategori)) {
+                    $arr = json_decode($item->kategori, true);
+                    if (is_array($arr)) {
+                        $kategoriLabel = $arr[0] ?? $kategoriLabel;
+                        $subkategoriLabel = $arr[1] ?? $subkategoriLabel;
+                    }
+                }
                 return [
                     'id' => $item->id,
                     'judul' => $item->judul,
                     'judul_indo' => $item->judul_indo ?? null,
+                    'kategori_label' => $kategoriLabel,
+                    'subkategori_label' => $subkategoriLabel,
                     'kategori' => $item->kategori,
                     'sub_kategori' => $item->sub_kategori,
                     'penulis' => $item->penulis,

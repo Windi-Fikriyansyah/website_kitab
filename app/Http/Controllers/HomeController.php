@@ -53,6 +53,13 @@ class HomeController extends Controller
         }, $decoded);
     }
 
+    private function is_json($str): bool
+    {
+        if (!is_string($str) || trim($str) === '') return false;
+        json_decode($str);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
     // Home page
     public function index()
     {
@@ -62,8 +69,44 @@ class HomeController extends Controller
             ->limit(8)
             ->get()
             ->map(function ($item) {
+                // images
                 $item->images = $this->processImages($item->images);
-                return (array)$item; // Convert to array to match view expectations
+
+                // ✅ normalisasi kategori (support string & JSON array)
+                $kategoriLabel = '-';
+                $subLabel = null;
+
+                // kalau kategori string biasa
+                if (!empty($item->kategori)) {
+                    if ($this->is_json($item->kategori)) {
+                        $arr = json_decode($item->kategori, true);
+                        if (is_array($arr)) {
+                            $kategoriLabel = $arr[0] ?? $kategoriLabel;
+                            $subLabel = $arr[1] ?? $subLabel;
+                        }
+                    } else {
+                        $kategoriLabel = $item->kategori;
+                    }
+                }
+
+                // kalau sub_kategori juga JSON / string
+                if (!empty($item->sub_kategori)) {
+                    if ($this->is_json($item->sub_kategori)) {
+                        $arr = json_decode($item->sub_kategori, true);
+                        if (is_array($arr)) {
+                            $kategoriLabel = $arr[0] ?? $kategoriLabel;
+                            $subLabel = $arr[1] ?? $subLabel;
+                        }
+                    } else {
+                        $subLabel = $item->sub_kategori;
+                    }
+                }
+
+                // hasil final untuk view
+                $item->kategori_label = $kategoriLabel;
+                $item->subkategori_label = $subLabel;
+
+                return (array) $item;
             })
             ->toArray();
         // Di dalam method index(), ubah pengambilan data testimoni:
