@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Str;
+
 
 
 class LayoutController extends Controller
@@ -17,9 +19,7 @@ class LayoutController extends Controller
     public function getByKategori($kategoriId)
     {
         try {
-            $kategori = DB::table('kategori')
-                ->where('id', $kategoriId)
-                ->first();
+            $kategori = DB::table('kategori')->where('id', $kategoriId)->first();
 
             if (!$kategori) {
                 return response()->json([
@@ -28,13 +28,35 @@ class LayoutController extends Controller
                 ], 404);
             }
 
+            // Ambil semua nama_arab subkategori di kategori ini
             $subkategoris = DB::table('sub_kategori')
                 ->where('id_kategori', $kategoriId)
-                ->pluck('nama_arab');
+                ->pluck('nama_arab')
+                ->filter()
+                ->values()
+                ->all();
+
+            $kategoriNama = $kategori->nama_arab;
 
             $produks = DB::table('produk')
-                ->whereIn('sub_kategori', $subkategoris)
                 ->select('id', 'judul', 'penulis', 'images')
+                ->where(function ($q) use ($subkategoris, $kategoriNama) {
+                    // kalau produk menyimpan kategori juga di array ["القرآن","مصاحف"]
+                    $q->where('sub_kategori', $kategoriNama)
+                        ->orWhereRaw(
+                            "(JSON_VALID(`sub_kategori`) AND JSON_CONTAINS(`sub_kategori`, ?))",
+                            [json_encode($kategoriNama, JSON_UNESCAPED_UNICODE)]
+                        );
+
+                    // match salah satu subkategori di dalam JSON array
+                    foreach ($subkategoris as $nama) {
+                        $q->orWhere('sub_kategori', $nama)
+                            ->orWhereRaw(
+                                "(JSON_VALID(`sub_kategori`) AND JSON_CONTAINS(`sub_kategori`, ?))",
+                                [json_encode($nama, JSON_UNESCAPED_UNICODE)]
+                            );
+                    }
+                })
                 ->limit(10)
                 ->get()
                 ->map(function ($produk) {
@@ -42,23 +64,18 @@ class LayoutController extends Controller
                     if ($produk->images) {
                         try {
                             $images = json_decode($produk->images, true, 512, JSON_THROW_ON_ERROR);
-                            // Tambahkan base URL ke setiap gambar
-                            $images = array_map(function ($image) {
-                                return $this->externalBaseUrl . ltrim($image, '/');
-                            }, $images);
+                            $images = array_map(fn($img) => $this->externalBaseUrl . ltrim($img, '/'), $images);
                         } catch (\JsonException $e) {
                             $images = [];
                         }
                     }
-
-                    $slug = strtolower(str_replace(' ', '-', $produk->judul));
 
                     return [
                         'id' => $produk->id,
                         'judul' => $produk->judul,
                         'penulis' => $produk->penulis,
                         'images' => $images,
-                        'slug' => $slug
+                        'slug' => Str::slug($produk->judul),
                     ];
                 });
 
@@ -75,12 +92,11 @@ class LayoutController extends Controller
         }
     }
 
+
     public function getBySubkategori($subkategoriId)
     {
         try {
-            $subkategori = DB::table('sub_kategori')
-                ->where('id', $subkategoriId)
-                ->first();
+            $subkategori = DB::table('sub_kategori')->where('id', $subkategoriId)->first();
 
             if (!$subkategori) {
                 return response()->json([
@@ -89,9 +105,17 @@ class LayoutController extends Controller
                 ], 404);
             }
 
+            $nama = $subkategori->nama_arab;
+
             $produks = DB::table('produk')
-                ->where('sub_kategori', $subkategori->nama_arab)
                 ->select('id', 'judul', 'penulis', 'images')
+                ->where(function ($q) use ($nama) {
+                    $q->where('sub_kategori', $nama)
+                        ->orWhereRaw(
+                            "(JSON_VALID(`sub_kategori`) AND JSON_CONTAINS(`sub_kategori`, ?))",
+                            [json_encode($nama, JSON_UNESCAPED_UNICODE)]
+                        );
+                })
                 ->limit(10)
                 ->get()
                 ->map(function ($produk) {
@@ -99,23 +123,18 @@ class LayoutController extends Controller
                     if ($produk->images) {
                         try {
                             $images = json_decode($produk->images, true, 512, JSON_THROW_ON_ERROR);
-                            // Tambahkan base URL ke setiap gambar
-                            $images = array_map(function ($image) {
-                                return $this->externalBaseUrl . ltrim($image, '/');
-                            }, $images);
+                            $images = array_map(fn($img) => $this->externalBaseUrl . ltrim($img, '/'), $images);
                         } catch (\JsonException $e) {
                             $images = [];
                         }
                     }
-
-                    $slug = strtolower(str_replace(' ', '-', $produk->judul));
 
                     return [
                         'id' => $produk->id,
                         'judul' => $produk->judul,
                         'penulis' => $produk->penulis,
                         'images' => $images,
-                        'slug' => $slug
+                        'slug' => Str::slug($produk->judul),
                     ];
                 });
 
@@ -131,6 +150,7 @@ class LayoutController extends Controller
             ], 500);
         }
     }
+
 
 
     public function switch($locale)

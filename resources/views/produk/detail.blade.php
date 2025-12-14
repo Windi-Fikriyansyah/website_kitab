@@ -80,7 +80,11 @@
                         <div class="mb-4">
                             <span
                                 class="inline-block text-xs font-semibold uppercase tracking-wider text-primary-600 border border-primary-200 rounded-full px-3 py-1">
-                                {{ $produk['kategori'] ?? 'Kitab Islam' }}
+                                {{ $produk['kategori_label'] ?? 'Kitab Islam' }}
+                                @if (!empty($produk['subkategori_label']))
+                                    • {{ $produk['subkategori_label'] }}
+                                @endif
+
                             </span>
                             <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                                 {{ $produk['judul'] }}
@@ -213,8 +217,7 @@
                                     </li>
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Penerbit</span>
-                                        <span
-                                            class="text-gray-900 font-medium">{{ $produk['penerbit'] ?? 'Dar Ibnu Abbas Press' }}</span>
+                                        <span class="text-gray-900 font-medium">{{ $produk['penerbit'] ?? '-' }}</span>
                                     </li>
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Tahun Terbit</span>
@@ -229,7 +232,7 @@
                                 <ul class="space-y-2">
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Cover</span>
-                                        <span class="text-gray-900 font-medium">{{ $produk['cover'] ?? 'Arab' }}</span>
+                                        <span class="text-gray-900 font-medium">{{ $produk['cover'] ?? '-' }}</span>
                                     </li>
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Jumlah Halaman</span>
@@ -237,8 +240,7 @@
                                     </li>
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Ukuran</span>
-                                        <span
-                                            class="text-gray-900 font-medium">{{ $produk['ukuran'] ?? '15 x 21 cm' }}</span>
+                                        <span class="text-gray-900 font-medium">{{ $produk['ukuran'] ?? '-' }}</span>
                                     </li>
                                     <li class="flex justify-between">
                                         <span class="text-gray-600">Berat</span>

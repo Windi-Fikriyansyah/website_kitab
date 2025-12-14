@@ -294,6 +294,7 @@ class ProductController extends Controller
                 'produk.cover',
                 'produk.deskripsi',
                 'produk.stok',
+                'produk.ukuran',
                 'produk.images',
                 'produk.harga_jual',
                 'produk.harga_modal',
@@ -303,53 +304,65 @@ class ProductController extends Controller
             ->where('produk.id', $id)
             ->first();
 
-        if (!$produk) {
-            abort(404, 'Produk tidak ditemukan');
+        if (!$produk) abort(404, 'Produk tidak ditemukan');
+
+        $produkArray = (array) $produk;
+
+        // ✅ Normalisasi kategori & subkategori dari JSON ["Kategori","Subkategori"]
+        $kategoriLabel = $produk->kategori;        // fallback
+        $subkategoriLabel = null;
+
+        if (!empty($produk->sub_kategori) && $this->is_json($produk->sub_kategori)) {
+            $arr = json_decode($produk->sub_kategori, true);
+            if (is_array($arr)) {
+                $kategoriLabel = $arr[0] ?? $kategoriLabel;
+                $subkategoriLabel = $arr[1] ?? null;
+            }
+        } else {
+            // kalau bukan JSON, anggap string biasa
+            $subkategoriLabel = $produk->sub_kategori ?: null;
         }
 
-        // Convert object to array
-        $produkArray = (array)$produk;
+        $produkArray['kategori_label'] = $kategoriLabel ?: 'Kitab Islam';
+        $produkArray['subkategori_label'] = $subkategoriLabel;
 
-        // Handle images - check if images is JSON or single path
+        // ✅ Images
         $produkArray['images'] = [];
         if (!empty($produk->images)) {
             if ($this->is_json($produk->images)) {
-                // If images is JSON, decode it
                 $images = json_decode($produk->images, true);
-                foreach ($images as $image) {
-                    $produkArray['images'][] = $this->externalBaseUrl1 . $image;
+                foreach ((array)$images as $image) {
+                    $produkArray['images'][] = $this->externalBaseUrl1 . ltrim($image, '/');
                 }
             } else {
-                // If images is a single path
-                $produkArray['images'][] = $this->externalBaseUrl1 . $produk->images;
+                $produkArray['images'][] = $this->externalBaseUrl1 . ltrim($produk->images, '/');
             }
         }
 
-        // Slug check and redirect
+        // ✅ Slug redirect
         $expectedSlug = Str::slug($produk->judul_indo ?? $produk->judul ?? '');
         if ($slug && $slug !== $expectedSlug) {
-            return redirect()->route('produk.detail', [
-                'id' => $id,
-                'slug' => $expectedSlug
-            ], 301);
+            return redirect()->route('produk.detail', ['id' => $id, 'slug' => $expectedSlug], 301);
         }
 
-        // Get basic kategori data and convert to array
-        $kategoris = DB::table('kategori')->select('id', 'nama_arab', 'nama_indonesia')->get()->map(function ($item) {
-            return (array)$item;
-        })->toArray();
+        $kategoris = DB::table('kategori')->select('id', 'nama_arab', 'nama_indonesia')->get()
+            ->map(fn($item) => (array)$item)->toArray();
 
-        // Generate SEO data for detail page
         $seo = [
             'title' => ($produk->judul ?? 'Produk') . ' | Dar Ibnu Abbas',
             'description' => substr(strip_tags('Kitab ' . ($produk->judul ?? '') . ' karya ' . ($produk->penulis ?? '')), 0, 160),
-            'keywords' => ($produk->judul ?? '') . ', kitab arab, ' . ($produk->kategori ?? 'buku islam'),
+            'keywords' => ($produk->judul ?? '') . ', kitab arab, ' . ($produkArray['kategori_label'] ?? 'buku islam'),
             'canonical' => url()->current(),
             'og_image' => $produkArray['images'][0] ?? asset('images/default-book.jpg')
         ];
 
-        return view('produk.detail', ['produk' => $produkArray, 'kategoris' => $kategoris, 'seo' => $seo]);
+        return view('produk.detail', [
+            'produk' => $produkArray,
+            'kategoris' => $kategoris,
+            'seo' => $seo
+        ]);
     }
+
     private function is_json($string)
     {
         json_decode($string);
