@@ -80,10 +80,31 @@
                         <div class="mb-4">
                             <span
                                 class="inline-block text-xs font-semibold uppercase tracking-wider text-primary-600 border border-primary-200 rounded-full px-3 py-1">
-                                {{ $produk['kategori_label'] ?? 'Kitab Islam' }}
-                                @if (!empty($produk['subkategori_label']))
-                                    • {{ $produk['subkategori_label'] }}
+                                @php
+                                    $kat = $produk['kategori_label'] ?? null;
+                                    $sub = $produk['subkategori_label'] ?? null;
+
+                                    $clean = function ($v) {
+                                        if ($v === null) {
+                                            return null;
+                                        }
+                                        if (is_array($v)) {
+                                            return count($v) ? $v : null;
+                                        }
+                                        $t = trim((string) $v);
+                                        return $t === '' || $t === '[]' ? null : $t;
+                                    };
+
+                                    $kat = $clean($kat);
+                                    $sub = $clean($sub);
+                                @endphp
+
+
+                                {{ $kat ?: '-' }}
+                                @if ($sub)
+                                    <span class="text-gray-400">•</span> {{ $sub }}
                                 @endif
+
 
                             </span>
                             <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
