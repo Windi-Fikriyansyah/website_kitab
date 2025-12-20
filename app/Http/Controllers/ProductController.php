@@ -21,7 +21,7 @@ class ProductController extends Controller
         $selectedCovers = $this->normalizeFilterInput($request->input('covers', []));
         $searchQuery = trim($request->input('search', ''));
         $page = max(1, (int)$request->input('page', 1));
-        $perPage = 6;
+        $perPage = 20;
 
         // Get all filter data (keeping as stdClass objects)
         $filterData = [
