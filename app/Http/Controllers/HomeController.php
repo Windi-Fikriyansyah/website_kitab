@@ -8,24 +8,12 @@ use Illuminate\Support\Facades\Http;
 
 class HomeController extends Controller
 {
-    // Base URL for external images
-    protected $externalBaseUrl = 'https://manajemen.daribnuabbas.com/storage/products/';
-    protected $externalBase = 'https://manajemen.daribnuabbas.com/storage/testimoni/';
-    protected $externalBaseHero = 'https://manajemen.daribnuabbas.com/storage/';
-    // Ambil gambar hero dari base URL eksternal
-    protected function getExternalHero($imagePath)
+    // Base URL for internal images (if needed)
+    protected function getImageUrl($imagePath)
     {
-        return $this->externalBaseHero . ltrim($imagePath, '/');
-    }
-
-    // Get external image URL
-    protected function getExternalImage($imagePath)
-    {
-        return $this->externalBaseUrl . ltrim($imagePath, '/');
-    }
-    protected function getExternalfoto($imagePath)
-    {
-        return $this->externalBase . ltrim($imagePath, '/');
+        if (empty($imagePath)) return null;
+        if (str_starts_with($imagePath, 'http')) return $imagePath;
+        return asset('storage/' . ltrim($imagePath, '/'));
     }
 
     // Process images that could be array or JSON string
@@ -35,22 +23,53 @@ class HomeController extends Controller
             return [];
         }
 
-        // If images is already an array, return it directly
+        // Try to decode JSON
+        if (is_string($images) && $this->is_json($images)) {
+            $decoded = json_decode($images, true);
+            if (is_array($decoded)) {
+                // If it's a single object with 'url'
+                if (isset($decoded['url'])) {
+                    return [$decoded['url']];
+                }
+
+                $result = [];
+                foreach ($decoded as $item) {
+                    if (is_array($item) && isset($item['url'])) {
+                        $result[] = $item['url'];
+                    } else if (is_string($item)) {
+                        $result[] = $this->getImageUrl($item);
+                    }
+                }
+                return $result;
+            }
+        }
+
         if (is_array($images)) {
             return array_map(function ($image) {
-                return $this->getExternalImage($image);
+                return (is_array($image) && isset($image['url'])) ? $image['url'] : $this->getImageUrl($image);
             }, $images);
         }
 
-        // Try to decode JSON
-        $decoded = json_decode($images, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return [];
-        }
+        return [$this->getImageUrl($images)];
+    }
 
-        return array_map(function ($image) {
-            return $this->getExternalImage($image);
-        }, $decoded);
+    protected function parseHeroImage($image)
+    {
+        if (empty($image)) return null;
+        
+        if ($this->is_json($image)) {
+            $decoded = json_decode($image, true);
+            if (is_array($decoded)) {
+                if (isset($decoded['url'])) {
+                    return $decoded['url'];
+                }
+                if (isset($decoded[0]['url'])) {
+                    return $decoded[0]['url'];
+                }
+            }
+        }
+        
+        return $this->getImageUrl($image);
     }
 
     private function is_json($str): bool
@@ -118,7 +137,7 @@ class HomeController extends Controller
             ->map(function ($item) {
                 // Proses path gambar testimoni seperti produk
                 if (!empty($item->foto_unboxing)) {
-                    $item->foto_unboxing = $this->getExternalfoto($item->foto_unboxing);
+                    $item->foto_unboxing = $this->getImageUrl($item->foto_unboxing);
                 }
                 return $item;
             });
@@ -126,11 +145,39 @@ class HomeController extends Controller
         $hero = DB::table('hero_section')->first();
 
         if ($hero) {
-            if (!empty($hero->hero_image_1)) {
-                $hero->hero_image_1 = $this->getExternalHero($hero->hero_image_1);
+            // Priority 1: Use hero_images (JSON array of objects with 'url')
+            if (!empty($hero->hero_images)) {
+                $images = [];
+                if ($this->is_json($hero->hero_images)) {
+                    $decoded = json_decode($hero->hero_images, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $item) {
+                            if (is_array($item) && isset($item['url'])) {
+                                $images[] = $item['url'];
+                            } elseif (is_string($item)) {
+                                $images[] = $this->getImageUrl($item);
+                            }
+                        }
+                    }
+                }
+                
+                if (!empty($images)) {
+                    $hero->hero_image_1 = $images[0] ?? null;
+                    $hero->hero_image_2 = $images[1] ?? null;
+                }
             }
-            if (!empty($hero->hero_image_2)) {
-                $hero->hero_image_2 = $this->getExternalHero($hero->hero_image_2);
+
+            // Priority 2: Use hero_image_1 and hero_image_2 if they are still empty
+            if (empty($hero->hero_image_1) && !empty($hero->hero_image_1_old)) { // check if old columns exist
+                 // (Assume they might be named hero_image_1/2 in newer DB too)
+            }
+            
+            // Fallback: If they were already in the object but not processed
+            if (!empty($hero->hero_image_1) && !str_starts_with($hero->hero_image_1, 'http')) {
+                $hero->hero_image_1 = $this->getImageUrl($hero->hero_image_1);
+            }
+            if (!empty($hero->hero_image_2) && !str_starts_with($hero->hero_image_2, 'http')) {
+                $hero->hero_image_2 = $this->getImageUrl($hero->hero_image_2);
             }
         }
         $seo = [
@@ -138,7 +185,7 @@ class HomeController extends Controller
             'description' => 'Temukan ribuan kitab Arab terbaik untuk memperdalam ilmu Islam. Stok lengkap dengan harga terjangkau dan pengiriman cepat ke seluruh Indonesia.',
             'keywords' => 'kitab arab, buku islam, fiqh, hadits, tafsir, kitab kuning, pesantren, pondok',
             'canonical' => url('/'),
-            'og_image' => $this->getExternalImage('images/og-image.jpg')
+            'og_image' => $this->getImageUrl('images/og-image.jpg')
         ];
 
         return view('home', compact('produk', 'seo', 'testimoni', 'hero'));
@@ -162,7 +209,7 @@ class HomeController extends Controller
             'description' => 'Lihat koleksi lengkap kitab Arab kami. Tersedia berbagai kategori mulai dari Quran, Hadits, Fiqh, hingga Bahasa Arab.',
             'keywords' => 'daftar kitab, koleksi kitab arab, buku islam lengkap, kitab pesantren, kitab kuning',
             'canonical' => route('produk.semua'),
-            'og_image' => $this->getExternalImage('images/og-image-produk.jpg')
+            'og_image' => $this->getImageUrl('images/og-image-produk.jpg')
         ];
 
         return view('produk.semua', compact('produk', 'seo'));
@@ -188,7 +235,7 @@ class HomeController extends Controller
             'description' => 'Beli ' . $produk['judul'] . ' karya ' . ($produk['penulis'] ?? 'Penulis tidak diketahui') . '. ' . ($produk['kategori'] ?? 'Kitab Islam') . ' berkualitas tinggi.',
             'keywords' => strtolower($produk['judul']) . ', kitab ' . strtolower($produk['kategori']) . ', buku islam, ' . ($produk['penulis'] ?? ''),
             'canonical' => route('produk.detail', $id),
-            'og_image' => $produk['images'][0] ?? $this->getExternalImage('images/og-image.jpg')
+            'og_image' => $produk['images'][0] ?? $this->getImageUrl('images/og-image.jpg')
         ];
 
         $rekomendasi = DB::table('produk')
@@ -231,7 +278,7 @@ class HomeController extends Controller
             'description' => 'Hasil pencarian kitab Arab untuk "' . $keyword . '". Temukan kitab yang Anda cari di koleksi kami.',
             'keywords' => 'pencarian kitab, cari kitab arab, ' . $keyword,
             'canonical' => route('produk.cari') . '?q=' . urlencode($keyword),
-            'og_image' => $this->getExternalImage('images/og-image.jpg')
+            'og_image' => $this->getImageUrl('images/og-image.jpg')
         ];
 
         return view('produk.cari', compact('produk', 'keyword', 'seo'));

@@ -9,7 +9,47 @@ use Illuminate\Support\Str;
 class ProductController extends Controller
 {
 
-    protected $externalBaseUrl1 = 'https://manajemen.daribnuabbas.com/storage/products/';
+    protected function processImages($images)
+    {
+        if (empty($images)) {
+            return [];
+        }
+
+        if (is_string($images) && $this->is_json($images)) {
+            $decoded = json_decode($images, true);
+            if (is_array($decoded)) {
+                // If it's a single object with 'url'
+                if (isset($decoded['url'])) {
+                    return [$decoded['url']];
+                }
+
+                $result = [];
+                foreach ($decoded as $item) {
+                    if (is_array($item) && isset($item['url'])) {
+                        $result[] = $item['url'];
+                    } else if (is_string($item)) {
+                        $result[] = $this->getImageUrl($item);
+                    }
+                }
+                return $result;
+            }
+        }
+
+        if (is_array($images)) {
+            return array_map(function ($image) {
+                return (is_array($image) && isset($image['url'])) ? $image['url'] : $this->getImageUrl($image);
+            }, $images);
+        }
+
+        return [$this->getImageUrl($images)];
+    }
+
+    protected function getImageUrl($imagePath)
+    {
+        if (empty($imagePath)) return null;
+        if (str_starts_with($imagePath, 'http')) return $imagePath;
+        return asset('storage/' . ltrim($imagePath, '/'));
+    }
 
     public function index(Request $request)
     {
@@ -105,16 +145,7 @@ class ProductController extends Controller
             ->get()
             ->map(function ($item) {
                 // images
-                $images = [];
-                if (!empty($item->images)) {
-                    if ($this->is_json($item->images)) {
-                        foreach ((array) json_decode($item->images, true) as $image) {
-                            $images[] = $this->externalBaseUrl1 . ltrim($image, '/');
-                        }
-                    } else {
-                        $images[] = $this->externalBaseUrl1 . ltrim($item->images, '/');
-                    }
-                }
+                $images = $this->processImages($item->images);
 
                 // ✅ kategori label (support JSON ["Kategori","Subkategori"])
                 $kategoriLabel = $item->kategori_indo ?: ($item->kategori ?: 'Kitab Islam');
@@ -230,24 +261,7 @@ class ProductController extends Controller
 
             // Tambahkan URL base untuk gambar eksternal
             $products->transform(function ($product) {
-                $images = [];
-
-                if ($product->images) {
-                    if (is_string($product->images) && $this->is_json($product->images)) {
-                        $decoded = json_decode($product->images, true);
-                        foreach ($decoded as $img) {
-                            $images[] = $this->externalBaseUrl1 . $img;
-                        }
-                    } else if (is_string($product->images)) {
-                        $images[] = $this->externalBaseUrl1 . $product->images;
-                    } else if (is_array($product->images)) {
-                        foreach ($product->images as $img) {
-                            $images[] = $this->externalBaseUrl1 . $img;
-                        }
-                    }
-                }
-
-                $product->images = $images;
+                $product->images = $this->processImages($product->images);
 
                 return $product;
             });
@@ -363,17 +377,7 @@ class ProductController extends Controller
         $produkArray['subkategori_label'] = $subkategoriLabel;
 
         // ✅ Images
-        $produkArray['images'] = [];
-        if (!empty($produk->images)) {
-            if ($this->is_json($produk->images)) {
-                $images = json_decode($produk->images, true);
-                foreach ((array)$images as $image) {
-                    $produkArray['images'][] = $this->externalBaseUrl1 . ltrim($image, '/');
-                }
-            } else {
-                $produkArray['images'][] = $this->externalBaseUrl1 . ltrim($produk->images, '/');
-            }
-        }
+        $produkArray['images'] = $this->processImages($produk->images);
 
         // ✅ Slug redirect
         $expectedSlug = Str::slug($produk->judul_indo ?? $produk->judul ?? '');

@@ -13,7 +13,19 @@ use Illuminate\Support\Str;
 
 class LayoutController extends Controller
 {
-    protected $externalBaseUrl = 'https://manajemen.daribnuabbas.com/storage/products/';
+    protected function getImageUrl($imagePath)
+    {
+        if (empty($imagePath)) return null;
+        if (str_starts_with($imagePath, 'http')) return $imagePath;
+        return asset('storage/' . ltrim($imagePath, '/'));
+    }
+
+    private function is_json($string)
+    {
+        if (!is_string($string)) return false;
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
 
     // App\Http\Controllers\LayoutController.php
     public function getByKategori($kategoriId)
@@ -62,11 +74,21 @@ class LayoutController extends Controller
                 ->map(function ($produk) {
                     $images = [];
                     if ($produk->images) {
-                        try {
-                            $images = json_decode($produk->images, true, 512, JSON_THROW_ON_ERROR);
-                            $images = array_map(fn($img) => $this->externalBaseUrl . ltrim($img, '/'), $images);
-                        } catch (\JsonException $e) {
-                            $images = [];
+                        if ($this->is_json($produk->images)) {
+                            $decoded = json_decode($produk->images, true);
+                            if (isset($decoded['url'])) {
+                                $images[] = $decoded['url'];
+                            } else {
+                                foreach ($decoded as $item) {
+                                    if (is_array($item) && isset($item['url'])) {
+                                        $images[] = $item['url'];
+                                    } else if (is_string($item)) {
+                                        $images[] = $this->getImageUrl($item);
+                                    }
+                                }
+                            }
+                        } else {
+                            $images[] = $this->getImageUrl($produk->images);
                         }
                     }
 
@@ -121,11 +143,21 @@ class LayoutController extends Controller
                 ->map(function ($produk) {
                     $images = [];
                     if ($produk->images) {
-                        try {
-                            $images = json_decode($produk->images, true, 512, JSON_THROW_ON_ERROR);
-                            $images = array_map(fn($img) => $this->externalBaseUrl . ltrim($img, '/'), $images);
-                        } catch (\JsonException $e) {
-                            $images = [];
+                        if ($this->is_json($produk->images)) {
+                            $decoded = json_decode($produk->images, true);
+                            if (isset($decoded['url'])) {
+                                $images[] = $decoded['url'];
+                            } else {
+                                foreach ($decoded as $item) {
+                                    if (is_array($item) && isset($item['url'])) {
+                                        $images[] = $item['url'];
+                                    } else if (is_string($item)) {
+                                        $images[] = $this->getImageUrl($item);
+                                    }
+                                }
+                            }
+                        } else {
+                            $images[] = $this->getImageUrl($produk->images);
                         }
                     }
 

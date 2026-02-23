@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LayoutController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\BlogController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/produk-by-subkategori/{subkategoriId}', [LayoutController::class, 'getBySubkategori']);
@@ -36,9 +37,8 @@ Route::get('/tentang', function () {
 Route::get('/hubungi', function () {
     return view('hubungi.index');
 })->name('kontak');
-Route::get('/blog', function () {
-    return view('blog.index');
-})->name('blog');
+Route::get('/blog', [BlogController::class, 'index'])->name('blog');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/language/{locale}', [LayoutController::class, 'switch'])
     ->name('language.switch');
 Route::get('/api/autocomplete', [ProductController::class, 'autocomplete'])->name('api.autocomplete');

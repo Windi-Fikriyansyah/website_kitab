@@ -99,6 +99,7 @@
     </section>
 
     <!-- Featured Article -->
+    @if($featured)
     <section class="py-12">
         <div class="container mx-auto px-4">
             <div class="max-w-6xl mx-auto">
@@ -110,28 +111,26 @@
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden blog-card">
                     <div class="md:flex">
                         <div class="md:w-1/2">
-                            <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                                alt="Artikel Pilihan" class="w-full h-64 md:h-full object-cover">
+                            <img src="{{ $featured->image ?? 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80' }}"
+                                alt="{{ $featured->title }}" class="w-full h-64 md:h-full object-cover">
                         </div>
                         <div class="md:w-1/2 p-8">
                             <div class="flex items-center mb-4">
                                 <span class="category-tag text-white px-3 py-1 rounded-full text-sm font-medium mr-3">
-                                    Ulasan Kitab
+                                    {{ $featured->category ?? 'Umum' }}
                                 </span>
                                 <span class="text-gray-500 text-sm">
                                     <i class="far fa-clock mr-1"></i>
-                                    15 Menit Baca
+                                    {{ $featured->read_time ?? '5 Menit Baca' }}
                                 </span>
                             </div>
 
                             <h3 class="text-2xl md:text-3xl font-bold text-primary-800 mb-4 leading-tight">
-                                Mengenal Lebih Dalam: Shahih Bukhari dan Metodologi Pengumpulan Hadits
+                                {{ $featured->title }}
                             </h3>
 
                             <p class="text-gray-600 mb-6 leading-relaxed">
-                                Eksplorasi mendalam tentang karya monumental Imam Bukhari, metodologi rigorous yang
-                                digunakan dalam pengumpulan hadits, dan relevansinya dalam studi Islam
-                                kontemporer...
+                                {{ $featured->excerpt }}
                             </p>
 
                             <div class="flex items-center justify-between">
@@ -141,12 +140,12 @@
                                         <i class="fas fa-user text-white"></i>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-primary-800">Dr. Ahmad Syaifuddin</p>
-                                        <p class="text-sm text-gray-500">5 Desember 2024</p>
+                                        <p class="font-semibold text-primary-800">{{ $featured->author ?? 'Admin' }}</p>
+                                        <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($featured->created_at)->translatedFormat('d F Y') }}</p>
                                     </div>
                                 </div>
 
-                                <a href="#"
+                                <a href="{{ route('blog.show', $featured->slug) }}"
                                     class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium">
                                     Baca Selengkapnya
                                     <i class="fas fa-arrow-right ml-2"></i>
@@ -158,6 +157,7 @@
             </div>
         </div>
     </section>
+    @endif
 
     <!-- Blog Grid -->
     <section class="py-12 bg-white">
@@ -168,215 +168,48 @@
                 </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Blog Card 1 -->
+                    @forelse($articles as $article)
+                    <!-- Blog Card -->
                     <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
                         <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
+                            <img src="{{ $article->image ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80' }}"
+                                alt="{{ $article->title }}" class="w-full h-48 object-cover">
                             <span
                                 class="absolute top-4 left-4 bg-accent-DEFAULT text-primary-800 px-3 py-1 rounded-full text-sm font-medium">
-                                Tips & Panduan
+                                {{ $article->category ?? 'Umum' }}
                             </span>
                         </div>
                         <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Cara Memilih Kitab yang Tepat untuk Pemula</a>
+                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors line-clamp-2">
+                                <a href="{{ route('blog.show', $article->slug) }}">{{ $article->title }}</a>
                             </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Panduan lengkap untuk memilih kitab klasik yang sesuai dengan tingkat pemahaman dan
-                                kebutuhan pembelajaran Anda...
+                            <p class="text-gray-600 mb-4 leading-relaxed line-clamp-3">
+                                {{ $article->excerpt }}
                             </p>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center text-sm text-gray-500">
                                     <i class="far fa-clock mr-1"></i>
-                                    <span>8 Min</span>
+                                    <span>{{ $article->read_time ?? '5 Min' }}</span>
                                     <span class="mx-2">•</span>
-                                    <span>2 Des 2024</span>
+                                    <span>{{ \Carbon\Carbon::parse($article->created_at)->translatedFormat('d M Y') }}</span>
                                 </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
+                                <a href="{{ route('blog.show', $article->slug) }}" class="text-primary-600 hover:text-primary-800 font-medium">
                                     Baca <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
                             </div>
                         </div>
                     </article>
-
-                    <!-- Blog Card 2 -->
-                    <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1609156733894-e7e4f5b4c6b9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
-                            <span
-                                class="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                Wawasan Islam
-                            </span>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Tradisi Keilmuan dalam Peradaban Islam Klasik</a>
-                            </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Menelusuri jejak perkembangan tradisi keilmuan Islam dari masa klasik hingga
-                                kontemporer dan pengaruhnya terhadap dunia modern...
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span>12 Min</span>
-                                    <span class="mx-2">•</span>
-                                    <span>30 Nov 2024</span>
-                                </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
-                                    Baca <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Blog Card 3 -->
-                    <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
-                            <span
-                                class="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                Ulasan Kitab
-                            </span>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Review: Tafsir Ibn Kathir - Masterpiece Tafsir Klasik</a>
-                            </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Ulasan mendalam tentang karya tafsir monumentel Ibn Kathir, metodologi
-                                penafsirannya, dan kelebihannya dibanding tafsir lainnya...
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span>15 Min</span>
-                                    <span class="mx-2">•</span>
-                                    <span>28 Nov 2024</span>
-                                </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
-                                    Baca <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Blog Card 4 -->
-                    <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
-                            <span
-                                class="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                Sejarah
-                            </span>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Perkembangan Penulisan Kitab Fiqh dalam Sejarah Islam</a>
-                            </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Penelusuran historis tentang evolusi penulisan kitab-kitab fiqh dari masa sahabat
-                                hingga era kontemporer...
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span>10 Min</span>
-                                    <span class="mx-2">•</span>
-                                    <span>25 Nov 2024</span>
-                                </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
-                                    Baca <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Blog Card 5 -->
-                    <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
-                            <span
-                                class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                Metodologi
-                            </span>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Metode Efektif Mempelajari Kitab Kuning</a>
-                            </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Tips dan strategi praktis untuk memahami dan menguasai kitab-kitab klasik dengan
-                                lebih mudah dan efektif...
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span>7 Min</span>
-                                    <span class="mx-2">•</span>
-                                    <span>22 Nov 2024</span>
-                                </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
-                                    Baca <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Blog Card 6 -->
-                    <article class="bg-white rounded-xl shadow-lg overflow-hidden blog-card">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-                                alt="Blog Image" class="w-full h-48 object-cover">
-                            <span
-                                class="absolute top-4 left-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                                Biografi
-                            </span>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-primary-800 mb-3 hover:text-primary-600 transition-colors">
-                                <a href="#">Imam Nawawi: Kehidupan dan Karya-Karya Monumentalnya</a>
-                            </h3>
-                            <p class="text-gray-600 mb-4 leading-relaxed">
-                                Biografi lengkap Imam Nawawi dan penjelasan detail tentang karya-karya beliau yang
-                                masih relevan hingga kini...
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center text-sm text-gray-500">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span>13 Min</span>
-                                    <span class="mx-2">•</span>
-                                    <span>20 Nov 2024</span>
-                                </div>
-                                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">
-                                    Baca <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
+                    @empty
+                    <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20">
+                        <i class="fas fa-newspaper text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-xl text-gray-500">Belum ada artikel yang dipublikasikan.</p>
+                    </div>
+                    @endforelse
                 </div>
 
                 <!-- Pagination -->
-                <div class="flex justify-center mt-12">
-                    <nav class="flex space-x-2">
-                        <button class="px-4 py-2 text-gray-500 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                            disabled>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button class="px-4 py-2 bg-primary-600 text-white rounded-lg">1</button>
-                        <button
-                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">2</button>
-                        <button
-                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">3</button>
-                        <button class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </nav>
+                <div class="mt-12 flex justify-center">
+                    {{ $articles->links() }}
                 </div>
             </div>
         </div>
